@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offline Photo Studio</title>
+<style>
+:root{--bg:#101827;--panel:#192438;--panel2:#223149;--text:#f4f7fb;--muted:#b6c2d3;--accent:#8bd4c0;--line:#34445c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{padding:20px 16px;background:linear-gradient(130deg,#203d57,#276c69);text-align:center}h1{margin:0;font-size:clamp(1.5rem,5vw,2.1rem)}header p{margin:6px 0 0;color:#e0f6f1}
+main{max-width:1000px;margin:auto;padding:14px;display:grid;gap:14px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+h2{font-size:1.08rem;margin:0 0 12px}.upload{border:1px dashed #7890a9;border-radius:12px;padding:16px;text-align:center}
+input,select,button{font:inherit;border-radius:9px;border:1px solid var(--line);padding:10px;background:#101a2b;color:var(--text);max-width:100%}
+button{cursor:pointer;font-weight:650;background:var(--panel2)}button.primary{background:var(--accent);color:#10231f;border-color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.control{display:grid;gap:6px}.control label{font-size:.9rem;color:var(--muted)}input[type=range]{width:100%;padding:0;accent-color:var(--accent)}input[type=color]{height:42px;width:100%;padding:4px}
+.preview{background:#0b111d;border-radius:12px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:8px}
+canvas{display:block;max-width:100%;max-height:65vh;height:auto;width:auto;object-fit:contain}.empty{color:var(--muted);text-align:center;padding:38px 14px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.actions button{flex:1}
+.note{font-size:.84rem;line-height:1.5;color:var(--muted)}.tag{display:inline-block;background:#243c4b;color:#d7f7ef;border-radius:999px;padding:5px 9px;font-size:.78rem;margin:2px}
+.watermark{text-align:center;color:#a7b6c7;font-size:.8rem;padding:8px}
+@media(min-width:800px){main{grid-template-columns:1fr 1fr}.preview-panel{grid-row:span 2}.features{grid-column:1/-1}}
+@media(max-width:420px){.controls{grid-template-columns:1fr}.actions button{min-width:40%}}
+</style></head>
+<body>
+<header><h1>📷 Offline Photo Studio</h1><p>20 handy photo tools · Works on your device</p></header>
+<main>
+<section class="panel">
+<h2>1. Open a photo</h2>
+<div class="upload"><input id="file" type="file" accept="image/*"><p class="note">Choose a photo from your phone. Your image stays in this browser; no upload is required.</p></div>
+<div class="actions"><button id="reset" disabled>Reset edits</button><button id="download" class="primary" disabled>Save photo</button></div>
+<p id="status" class="note" aria-live="polite">Choose an image to begin.</p>
+</section>
+<section class="panel preview-panel"><h2>Photo preview</h2><div class="preview" id="preview"><div class="empty">Your photo will appear here.</div></div><p class="note">Preview updates as you change the controls.</p></section>
+<section class="panel">
+<h2>2. Edit photo</h2>
+<div class="controls">
+<div class="control"><label for="brightness">2. Brightness <output id="brightnessOut">100%</output></label><input id="brightness" type="range" min="20" max="200" value="100"></div>
+<div class="control"><label for="contrast">3. Contrast <output id="contrastOut">100%</output></label><input id="contrast" type="range" min="20" max="200" value="100"></div>
+<div class="control"><label for="saturation">4. Saturation <output id="saturationOut">100%</output></label><input id="saturation" type="range" min="0" max="200" value="100"></div>
+<div class="control"><label for="warmth">5. Warmth <output id="warmthOut">0</output></label><input id="warmth" type="range" min="-60" max="60" value="0"></div>
+<div class="control"><label for="blur">6. Soft blur <output id="blurOut">0px</output></label><input id="blur" type="range" min="0" max="5" step=".5" value="0"></div>
+<div class="control"><label for="radius">7. Rounded corners <output id="radiusOut">0px</output></label><input id="radius" type="range" min="0" max="60" value="0"></div>
+<div class="control"><label for="filter">8. Photo filter</label><select id="filter"><option value="none">Original</option><option value="grayscale(1)">Black & white</option><option value="sepia(.85)">Sepia vintage</option><option value="hue-rotate(35deg) saturate(1.2)">Fresh green</option><option value="saturate(1.6) contrast(1.08)">Vivid</option><option value="invert(1)">Invert colors</option></select></div>
+<div class="control"><label for="rotation">9. Rotate</label><select id="rotation"><option value="0">0°</option><option value="90">90° clockwise</option><option value="180">180°</option><option value="270">270° clockwise</option></select></div>
+<div class="control"><label for="flip">10. Flip</label><select id="flip"><option value="none">No flip</option><option value="h">Horizontal</option><option value="v">Vertical</option><option value="both">Horizontal + vertical</option></select></div>
+<div class="control"><label for="crop">11. Crop shape</label><select id="crop"><option value="rect">Rectangle</option><option value="square">Square</option><option value="circle">Circle</option></select></div>
+<div class="control"><label for="vignette">12. Vignette <output id="vignetteOut">0%</output></label><input id="vignette" type="range" min="0" max="90" value="0"></div>
+<div class="control"><label for="grain">13. Film grain <output id="grainOut">0%</output></label><input id="grain" type="range" min="0" max="30" value="0"></div>
+<div class="control"><label for="text">14. Add text</label><input id="text" maxlength="80" placeholder="Write a caption…"></div>
+<div class="control"><label for="textColor">15. Text colour</label><input id="textColor" type="color" value="#ffffff"></div>
+<div class="control"><label for="textSize">16. Text size <output id="textSizeOut">32px</output></label><input id="textSize" type="range" min="12" max="90" value="32"></div>
+<div class="control"><label for="textPosition">17. Text position</label><select id="textPosition"><option value="bottom">Bottom</option><option value="top">Top</option><option value="middle">Middle</option></select></div>
+<div class="control"><label for="watermark">18. Watermark</label><input id="watermark" maxlength="80" placeholder="Your name or brand"></div>
+<div class="control"><label for="wmOpacity">19. Watermark opacity <output id="wmOpacityOut">55%</output></label><input id="wmOpacity" type="range" min="10" max="100" value="55"></div>
+<div class="control"><label for="format">20. Save format</label><select id="format"><option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select></div>
+</div>
+<div class="actions"><button id="apply" class="primary" disabled>Apply & refresh preview</button><button id="clearText" disabled>Clear text</button></div>
+</section>
+<section class="panel features"><h2>20 features included</h2>
+<div><span class="tag">Open photo</span><span class="tag">Save photo</span><span class="tag">Brightness</span><span class="tag">Contrast</span><span class="tag">Saturation</span><span class="tag">Warmth</span><span class="tag">Soft blur</span><span class="tag">Rounded corners</span><span class="tag">Photo filters</span><span class="tag">Rotate</span><span class="tag">Flip</span><span class="tag">Crop shape</span><span class="tag">Vignette</span><span class="tag">Film grain</span><span class="tag">Caption</span><span class="tag">Text colour</span><span class="tag">Text size</span><span class="tag">Text position</span><span class="tag">Watermark</span><span class="tag">JPG/PNG/WebP export</span></div>
+<p class="note">All editing happens locally in this page. Some advanced edits use a simple browser-based rendering, not professional retouching.</p></section>
+<footer class="watermark">Offline Photo Studio · Made for personal photo editing</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id), canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
+let source=null, originalName='photo', originalW=0, originalH=0;
+const ids=['brightness','contrast','saturation','warmth','blur','radius','filter','rotation','flip','crop','vignette','grain','text','textColor','textSize','textPosition','watermark','wmOpacity','format'];
+function val(id){return $(id).value}
+function setOutputs(){for(const id of ['brightness','contrast','saturation','warmth','blur','radius','vignette','grain','textSize','wmOpacity']){const out=$(id+'Out');if(out)out.textContent=val(id)+(id==='brightness'||id==='contrast'||id==='saturation'||id==='vignette'||id==='grain'||id==='wmOpacity'?'%':id==='blur'?'px':id==='textSize'?'px':'')}}
+function enable(on){['reset','download','apply','clearText'].forEach(id=>$(id).disabled=!on)}
+function loadFile(file){if(!file)return;if(!file.type.startsWith('image/')){$('status').textContent='Please choose an image file.';return}const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{source=img;originalW=img.naturalWidth;originalH=img.naturalHeight;originalName=(file.name||'photo').replace(/\.[^.]+$/,'');enable(true);render();URL.revokeObjectURL(url);$('status').textContent=`Loaded ${file.name} · ${originalW} × ${originalH}px. Photo stays on your device.`};img.onerror=()=>{$('status').textContent='Could not open this image.';URL.revokeObjectURL(url)};img.src=url}
+function roundedPath(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function render(){
+ if(!source)return;
+ const rot=Number(val('rotation')),swap=rot===90||rot===270;
+ let sw=originalW,sh=originalH;
+ if(val('crop')==='square'){const side=Math.min(sw,sh);sw=sh=side}
+ const maxSide=2400,scale=Math.min(1,maxSide/Math.max(sw,sh));sw=Math.round(sw*scale);sh=Math.round(sh*scale);
+ canvas.width=swap?sh:sw;canvas.height=swap?sw:sh;
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.save();ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(rot*Math.PI/180);
+ const flip=val('flip');ctx.scale(flip==='h'||flip==='both'?-1:1,flip==='v'||flip==='both'?-1:1);
+ let sx=0,sy=0,cw=originalW,ch=originalH;if(val('crop')==='square'){const side=Math.min(cw,ch);sx=(cw-side)/2;sy=(ch-side)/2;cw=ch=side}
+ const dw=swap?sh:sw,dh=swap?sw:sh;
+ ctx.filter=`brightness(${val('brightness')}%) contrast(${val('contrast')}%) saturate(${val('saturation')}%) blur(${val('blur')}px) ${val('filter')}`;
+ ctx.drawImage(source,sx,sy,cw,ch,-dw/2,-dh/2,dw,dh);ctx.filter='none';ctx.restore();
+ const w=canvas.width,h=canvas.height;
+ if(Number(val('warmth'))!==0){ctx.save();ctx.globalAlpha=Math.abs(Number(val('warmth')))/240;ctx.fillStyle=Number(val('warmth'))>0?'#ff9c4a':'#4aafff';ctx.fillRect(0,0,w,h);ctx.restore()}
+ const vig=Number(val('vignette'))/100;if(vig){const g=ctx.createRadialGradient(w/2,h/2,Math.min(w,h)*.15,w/2,h/2,Math.max(w,h)*.7);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,0,${vig})`);ctx.fillStyle=g;ctx.fillRect(0,0,w,h)}
+ const grain=Number(val('grain'));if(grain){const step=Math.max(3,Math.round(Math.max(w,h)/260));ctx.save();for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){const a=Math.random()*grain/100*.65;if(Math.random()>.5)ctx.fillStyle=`rgba(255,255,255,${a})`;else ctx.fillStyle=`rgba(0,0,0,${a})`;ctx.fillRect(x,y,step,step)}ctx.restore()}
+ const caption=val('text').trim(),wm=val('watermark').trim(),size=Number(val('textSize'));
+ ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+ if(caption){ctx.font=`700 ${size}px system-ui, sans-serif`;ctx.lineWidth=Math.max(2,size/12);ctx.strokeStyle='rgba(0,0,0,.65)';ctx.fillStyle=val('textColor');const y=val('textPosition')==='top'?size+18:val('textPosition')==='middle'?h/2:h-size-22;wrapText(ctx,caption,w*.88,y,size*1.2,true)}
+ if(wm){ctx.font=`600 ${Math.max(12,Math.min(30,w*.035))}px system-ui, sans-serif`;ctx.textAlign='right';ctx.globalAlpha=Number(val('wmOpacity'))/100;ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.65)';ctx.fillStyle='#fff';const t=wm;ctx.strokeText(t,w-16,h-18);ctx.fillText(t,w-16,h-18)}
+ ctx.restore();
+ const preview=$('preview');preview.innerHTML='';preview.appendChild(canvas);canvas.style.borderRadius=val('crop')==='circle'?'50%':val('radius')+'px';
+ setOutputs();
+}
+function wrapText(c,text,maxWidth,y,lineHeight,outline){const words=text.split(/\s+/),lines=[];let line='';for(const word of words){const test=line?line+' '+word:word;if(c.measureText(test).width>maxWidth&&line){lines.push(line);line=word}else line=test}if(line)lines.push(line);const start=y-(lines.length-1)*lineHeight/2;lines.forEach((l,i)=>{const yy=start+i*lineHeight;if(outline)c.strokeText(l,c.canvas.width/2,yy);c.fillText(l,c.canvas.width/2,yy)})}
+$('file').addEventListener('change',e=>loadFile(e.target.files[0]));
+ids.forEach(id=>$(id).addEventListener('input',()=>{setOutputs();if(source)render()}));
+$('apply').onclick=render;
+$('reset').onclick=()=>{ids.forEach(id=>{const el=$(id);if(el.type==='range'){const defaults={brightness:100,contrast:100,saturation:100,warmth:0,blur:0,radius:0,vignette:0,grain:0,textSize:32,wmOpacity:55};el.value=defaults[id]}else if(id==='textColor')el.value='#ffffff';else if(id==='format')el.value='image/jpeg';else if(id==='filter')el.value='none';else if(id==='rotation')el.value='0';else if(id==='flip')el.value='none';else if(id==='crop')el.value='rect';else if(id==='textPosition')el.value='bottom';else el.value=''});render()};
+$('clearText').onclick=()=>{['text','watermark'].forEach(id=>$(id).value='');render()};
+$('download').onclick=()=>{if(!source)return;const mime=val('format');const exportCanvas=document.createElement('canvas');exportCanvas.width=canvas.width;exportCanvas.height=canvas.height;const ec=exportCanvas.getContext('2d');if(mime==='image/jpeg'){ec.fillStyle='#fff';ec.fillRect(0,0,canvas.width,canvas.height)}ec.drawImage(canvas,0,0);const ext=mime==='image/png'?'png':mime==='image/webp'?'webp':'jpg';const a=document.createElement('a');a.download=`${originalName}-edited.${ext}`;a.href=exportCanvas.toDataURL(mime,.93);a.click();$('status').textContent='Photo saved or ready to save. Check your Downloads folder.'};
+setOutputs();
+</script></body></html>
