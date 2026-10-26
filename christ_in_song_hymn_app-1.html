@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Christ in Song — Hymn App</title>
+<style>
+:root{--green:#176b4d;--gold:#e4b44c;--paper:#fffdf7;--ink:#202a25;--muted:#65736b}
+*{box-sizing:border-box}body{margin:0;background:#f1f5f1;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:linear-gradient(135deg,#104a37,#21805d);color:white;padding:24px 18px 20px;text-align:center}
+header h1{margin:0;font-size:clamp(1.55rem,5vw,2.25rem);letter-spacing:.3px}header p{margin:7px 0 0;color:#e6f3eb}
+.wrap{max-width:900px;margin:auto;padding:16px}.tools{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:14px}
+input,select,button,textarea{font:inherit;border-radius:10px;border:1px solid #cbd6ce;padding:11px;background:white;color:var(--ink)}
+button{cursor:pointer;font-weight:650}.primary{background:var(--green);color:white;border-color:var(--green)}.gold{background:#fff4d7;border-color:#ecd28d}
+#status{font-size:.9rem;color:var(--muted);margin:8px 2px}
+.layout{display:grid;grid-template-columns:minmax(120px, .75fr) minmax(0,2fr);gap:14px;align-items:start}
+.panel{background:white;border:1px solid #dce5dd;border-radius:14px;overflow:hidden;box-shadow:0 4px 15px #163b2610}
+.panel h2{font-size:1.05rem;margin:0;padding:14px 15px;border-bottom:1px solid #e7eee8}
+#hymnList{max-height:62vh;overflow:auto;padding:8px}
+.hymn-number{width:100%;text-align:left;margin:3px 0;border:0;background:#f5f8f5;padding:10px;border-radius:8px}
+.hymn-number.active{background:#dcefe4;color:#10563b;outline:2px solid #8fc7a8}
+#detail{padding:16px}.number{color:var(--green);font-weight:800;font-size:.9rem}.title{font-size:1.45rem;margin:4px 0 12px}
+.lyrics{white-space:pre-wrap;line-height:1.8;min-height:150px;background:#fffdf7;border:1px solid #eee6d3;border-radius:10px;padding:14px}
+.muted{color:var(--muted);font-size:.9rem}.edit-area{margin-top:12px;display:grid;gap:8px}textarea{width:100%;min-height:135px;resize:vertical}
+#settings{display:none;margin:0 0 14px;padding:14px;background:#fff;border:1px solid #dce5dd;border-radius:14px}
+#settings.open{display:block}.setting-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.setting-grid label{display:grid;gap:5px;font-weight:650;font-size:.9rem}
+.watermark{text-align:center;color:#829087;font-size:.78rem;padding:20px 8px 10px;letter-spacing:.5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1}
+@media(max-width:600px){.tools{grid-template-columns:1fr 1fr}.tools input{grid-column:1/-1}.layout{grid-template-columns:1fr}#hymnList{max-height:240px}.setting-grid{grid-template-columns:1fr}.title{font-size:1.25rem}}
+</style>
+</head>
+<body>
+<header>
+  <h1>✝ Christ in Song</h1>
+  <p>Hymns for worship, prayer and praise</p>
+</header>
+<main class="wrap">
+  <div class="tools">
+    <input id="searchInput" type="search" placeholder="Search hymn number or title…" aria-label="Search hymns">
+    <button class="primary" id="searchBtn">Search Hymn</button>
+    <button class="gold" id="settingsBtn">⚙ Settings</button>
+  </div>
+  <section id="settings" aria-label="Settings">
+    <h2>App Settings</h2>
+    <div class="setting-grid">
+      <label>Language
+        <select id="language">
+          <option value="English">English</option><option value="Shona">Shona</option><option value="Ndebele">Ndebele</option>
+        </select>
+      </label>
+      <label>Display
+        <select id="displayMode"><option value="comfortable">Comfortable</option><option value="compact">Compact hymn list</option></select>
+      </label>
+    </div>
+    <p class="muted">The language setting changes the selected language for each hymn. Add the matching translation in the editor below.</p>
+    <button id="closeSettings" class="primary">Close Settings</button>
+  </section>
+  <p id="status" aria-live="polite">Hymns 1–300 · Choose a number or search.</p>
+  <div class="layout">
+    <section class="panel">
+      <h2>All Hymns (1–300)</h2>
+      <div id="hymnList"></div>
+    </section>
+    <section class="panel">
+      <h2>Selected Hymn</h2>
+      <div id="detail">
+        <div class="number" id="hymnNumber">HYMN 1</div>
+        <div class="title" id="hymnTitle">Hymn 1</div>
+        <div class="muted" id="languageLabel">English</div>
+        <div class="lyrics" id="lyricsView">Lyrics have not been added yet.</div>
+        <div class="edit-area">
+          <label for="titleInput"><strong>Hymn title</strong></label>
+          <input id="titleInput" placeholder="Enter hymn title">
+          <label for="lyricsInput"><strong>Lyrics / translation</strong></label>
+          <textarea id="lyricsInput" placeholder="Paste lyrics you own or are permitted to use…"></textarea>
+          <div class="actions">
+            <button id="saveBtn" class="primary">Save Hymn</button>
+            <button id="clearBtn">Clear Editor</button>
+          </div>
+          <p class="muted">Saved on this device/browser. Add only lyrics you own, have permission to use, or that are in the public domain.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+  <footer class="watermark">Watermark · Create takunda charles kanjuma</footer>
+</main>
+<script>
+const TOTAL=300;
+const key='christInSongHymns_v1';
+let selected=1, language='English', hymns={};
+try{hymns=JSON.parse(localStorage.getItem(key)||'{}')||{}}catch(e){hymns={}}
+const $=id=>document.getElementById(id);
+function getHymn(n){return hymns[n]||{title:`Hymn ${n}`,lyrics:{English:'',Shona:'',Ndebele:''}}}
+function langLyrics(h){if(typeof h.lyrics==='string')return h.lyrics;return (h.lyrics&&h.lyrics[language])||''}
+function renderList(filter=''){
+ const list=$('hymnList');list.innerHTML='';
+ const f=filter.trim().toLowerCase();
+ let count=0;
+ for(let n=1;n<=TOTAL;n++){
+  const h=getHymn(n), title=h.title||`Hymn ${n}`;
+  if(f && !String(n).includes(f) && !title.toLowerCase().includes(f) && !langLyrics(h).toLowerCase().includes(f))continue;
+  const b=document.createElement('button');b.className='hymn-number'+(n===selected?' active':'');
+  b.textContent=`${n}. ${title}`;b.onclick=()=>selectHymn(n);list.appendChild(b);count++;
+ }
+ $('status').textContent=f?`${count} result(s) for “${filter}” · Hymns 1–300`:'Hymns 1–300 · Choose a number or search.';
+ if(!count){const p=document.createElement('p');p.className='muted';p.textContent='No matching hymns. Try another number or title.';list.appendChild(p)}
+}
+function selectHymn(n){
+ selected=n;const h=getHymn(n), lyrics=langLyrics(h);
+ $('hymnNumber').textContent=`HYMN ${n}`;$('hymnTitle').textContent=h.title||`Hymn ${n}`;
+ $('languageLabel').textContent=language;
+ $('lyricsView').textContent=lyrics||`Lyrics for Hymn ${n} (${language}) have not been added yet. Use the editor below to add them.`;
+ $('titleInput').value=h.title||'';$('lyricsInput').value=lyrics;
+ renderList($('searchInput').value);
+}
+function saveHymn(){
+ const h=getHymn(selected);h.title=$('titleInput').value.trim()||`Hymn ${selected}`;
+ if(typeof h.lyrics==='string')h.lyrics={English:h.lyrics,Shona:'',Ndebele:''};
+ h.lyrics=h.lyrics||{English:'',Shona:'',Ndebele:''};h.lyrics[language]=$('lyricsInput').value;
+ hymns[selected]=h;
+ try{localStorage.setItem(key,JSON.stringify(hymns));$('status').textContent=`Hymn ${selected} saved on this device.`}
+ catch(e){$('status').textContent='Could not save. Your browser storage may be full or disabled.'}
+ selectHymn(selected);
+}
+$('searchBtn').onclick=()=>{const q=$('searchInput').value;renderList(q);const n=Number(q.trim());if(Number.isInteger(n)&&n>=1&&n<=TOTAL)selectHymn(n)};
+$('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('searchBtn').click()});
+$('settingsBtn').onclick=()=>$('settings').classList.toggle('open');
+$('closeSettings').onclick=()=>$('settings').classList.remove('open');
+$('language').onchange=()=>{language=$('language').value;selectHymn(selected)};
+$('displayMode').onchange=()=>{$('hymnList').style.padding=$('displayMode').value==='compact'?'2px':'8px';document.querySelectorAll('.hymn-number').forEach(b=>b.style.padding=$('displayMode').value==='compact'?'5px 8px':'10px')};
+$('saveBtn').onclick=saveHymn;
+$('clearBtn').onclick=()=>{$('titleInput').value='';$('lyricsInput').value=''};
+renderList();selectHymn(1);
+</script>
+</body>
+</html>
